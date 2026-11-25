@@ -36,3 +36,15 @@ output/
 
 .VSCodeCounter
 *.syso
+
+# Local secrets and runtime state — never commit
+*.env
+!*.env.example
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+cookies.txt
+.tmp-*
+.run/

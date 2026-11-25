@@ -38,7 +38,7 @@ $env:GOPROXY="https://goproxy.cn,direct"
 $env:GOSUMDB="sum.golang.google.cn"
 go build -trimpath -o bin\ourmemory.exe .
 
-$env:OPENLIST_ADMIN_PASSWORD="admin12345"
+$env:OPENLIST_ADMIN_PASSWORD="<set-a-strong-password>"
 $env:OM_DEBUG="1"
 $env:OM_BASE_HOST="om.autozteam.cn"
 .\bin\ourmemory.exe server --data .\data --log-std

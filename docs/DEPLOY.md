@@ -134,7 +134,10 @@ OPENLIST_SITE_URL=https://om.autozteam.cn
 
 - `OM_DEBUG=1` 时注册验证码写日志；生产在 SkyMail 配好前可临时保留，配好后改 `0`。
 - SkyMail 使用已解析的 `cm.autozteam.cn`（Cloudflare 上的 Cloud Mail 实例）：
-  `OM_SKYMAIL_BASE=https://cm.autozteam.cn`、`OM_SKYMAIL_EMAIL=admin@autozteam.cn`、`OM_SKYMAIL_ACCOUNT_ID=1`，密码写 `OM_SKYMAIL_PASSWORD`。
+  `OM_SKYMAIL_BASE=https://cm.autozteam.cn`、`OM_SKYMAIL_EMAIL=admin@autozteam.cn`（仅用于登录取 token）、
+  `OM_SKYMAIL_ACCOUNT_ID=6`（发件邮箱 `reply@autozteam.cn`），密码写 `OM_SKYMAIL_PASSWORD`。
+- 验证码邮件的 From 是 `reply@autozteam.cn`；不要把 `OM_SKYMAIL_ACCOUNT_ID` 设成 admin 账号 1。
+
 - 不要使用 `https://skymail.ink/api/login`：该自定义域对 POST 返回空 200；生产用 `cm.autozteam.cn`。
 - 修改环境后 `systemctl restart ourmemory`。
 
