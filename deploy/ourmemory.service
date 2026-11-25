@@ -1,0 +1,23 @@
+[Unit]
+Description=ourmemory shared storage and community
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ourmemory
+Group=ourmemory
+WorkingDirectory=/opt/ourmemory
+EnvironmentFile=/opt/ourmemory/ourmemory.env
+ExecStart=/opt/ourmemory/ourmemory server --data /opt/ourmemory/data --log-std
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=1048576
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/ourmemory/data
+
+[Install]
+WantedBy=multi-user.target

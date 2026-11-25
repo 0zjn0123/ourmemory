@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ourmemory · 共享记忆</title>
+  <meta name="description" content="ourmemory — 一个由所有人共同贡献的共享云盘与内容社区。">
+  <link rel="stylesheet" href="/om-assets/styles.css?v=20261124c">
+</head>
+<body>
+  <div class="ambient"></div>
+  <header class="topbar">
+    <a class="brand" href="/" data-link>
+      <span class="brand-mark">om</span>
+      <span>ourmemory</span>
+    </a>
+    <nav class="mainnav" id="mainnav">
+      <a href="/files" data-link>共享盘</a>
+      <a href="/files?scope=private" data-link id="nav-private" style="display:none">私人</a>
+      <a href="/video" data-link>视频</a>
+      <a href="/image" data-link>图片</a>
+      <a href="/weibo" data-link>动态</a>
+      <a href="/im" data-link>聊天</a>
+      <a href="/admin" data-link id="nav-admin" style="display:none">管理</a>
+    </nav>
+    <div class="topright" id="topright"></div>
+  </header>
+  <main id="app" class="app"></main>
+  <footer class="footer">
+    <span>ourmemory · 所有人的记忆，所有人的空间</span>
+    <span>基于 OpenList 构建 · AGPL-3.0 · <a href="https://github.com/OpenListTeam/OpenList" target="_blank" rel="noreferrer">Source</a></span>
+  </footer>
+  <div id="toast" class="toast"></div>
+  <div id="modal" class="modal hidden"><div class="modal-card" id="modal-card"></div></div>
+  <script src="/om-assets/app.js?v=20261124c"></script>
+</body>
+</html>
