@@ -26,7 +26,7 @@ func Register(e *gin.Engine) {
 		}
 		c.File(index)
 	}
-	for _, p := range []string{"/", "/login", "/register", "/files", "/video", "/video/:id", "/image", "/image/:id", "/weibo", "/im", "/settings", "/admin", "/u/:username"} {
+	for _, p := range []string{"/", "/login", "/register", "/video", "/video/:id", "/image", "/image/:id", "/weibo", "/im", "/settings", "/admin", "/u/:username"} {
 		e.GET(p, page)
 	}
 

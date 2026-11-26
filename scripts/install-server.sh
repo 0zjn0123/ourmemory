@@ -36,7 +36,7 @@ OM_NODE_SECRET=$NODE_SECRET
 OM_SKYMAIL_BASE=https://skymail.ink
 OM_DEBUG=1
 OPENLIST_ADMIN_PASSWORD=$ADMIN_PW
-OPENLIST_SITE_URL=https://om.autozteam.cn
+OPENLIST_SITE_URL=https://om.autozteam.cn/files
 EOF
   chmod 600 "$ENVF"
   printf '%s\n' "$ADMIN_PW" >"$APP/ADMIN_PASSWORD.txt"
@@ -51,7 +51,7 @@ if [ ! -f "$DATADIR/config.json" ]; then
   cat >"$DATADIR/config.json" <<EOF
 {
   "force": false,
-  "site_url": "https://om.autozteam.cn",
+  "site_url": "https://om.autozteam.cn/files",
   "cdn": "",
   "jwt_secret": "$JWT_SECRET",
   "token_expires_in": 48,

@@ -20,13 +20,24 @@ import (
 func Init(e *gin.Engine) {
 	e.ContextWithFallback = true
 	e.Use(om.SubdomainRewrite(om.BaseHost()))
-	if !utils.SliceContains([]string{"", "/"}, conf.URL.Path) {
+	if conf.URL.Path == "/files" {
+		// The OpenList SPA is served from the NoRoute handler, which engine-level
+		// middleware still covers but route-group middleware does not.
+		e.Use(om.SPASessionBootstrap())
+	}
+	if !utils.SliceContains([]string{"", "/", "/files"}, conf.URL.Path) {
 		e.GET("/", func(c *gin.Context) {
 			c.Redirect(302, conf.URL.Path)
 		})
 	}
 	Cors(e)
 	g := e.Group(conf.URL.Path)
+	// The OpenList SPA keeps its token in localStorage and sends it as an
+	// Authorization header. ourmemory uses an HttpOnly cookie, so bridge it
+	// before OpenList's auth middleware sees the request.
+	if conf.URL.Path == "/files" {
+		g.Use(om.TokenBridge())
+	}
 	if conf.Conf.Scheme.HttpPort != -1 && conf.Conf.Scheme.HttpsPort != -1 && conf.Conf.Scheme.ForceHttps {
 		e.Use(middlewares.ForceHttps)
 	}
@@ -81,7 +92,10 @@ func Init(e *gin.Engine) {
 	api.POST("/auth/login", handles.Login)
 	api.POST("/auth/login/hash", handles.LoginHash)
 	api.POST("/auth/login/ldap", handles.LoginLdap)
-	auth.GET("/me", handles.CurrentUser)
+	// ourmemory: serve the guest user to anonymous callers so the native file
+	// browser can render the public shared drive read-only instead of getting
+	// stuck on a login prompt. Logged-in users still get their own account.
+	api.GET("/me", middlewares.Auth(true), handles.CurrentUser)
 	auth.POST("/me/update", handles.UpdateCurrent)
 	// 媒体应用密钥（每个登录用户都可以为自己的客户端签发密钥）
 	auth.GET("/me/appkey/list", handles.ListMediaAppKeys)

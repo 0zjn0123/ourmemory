@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="ourmemory">
+  <rect width="64" height="64" rx="16" fill="#1677ff"/>
+  <path d="M18 40V24h5.6l4.2 8.6 4.2-8.6H38v16h-5v-8.2L29.6 40h-3.2L23 31.8V40z" fill="#fff"/>
+  <circle cx="45" cy="26" r="4" fill="#fff" opacity="0.85"/>
+  <circle cx="45" cy="38" r="4" fill="#fff" opacity="0.55"/>
+</svg>

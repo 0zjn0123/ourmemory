@@ -46,5 +46,9 @@ output/
 *.pem
 *.key
 cookies.txt
+.omcookies.txt
+.omtest.*
+.drive-test.txt
+data-omtest/
 .tmp-*
 .run/

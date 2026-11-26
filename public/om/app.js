@@ -98,9 +98,6 @@ async function previewFile(f) {
   document.getElementById('preview-close').onclick = closeModal;
 }
 
-const navItems = [
-  ['/files', '共享盘'], ['/video', '视频'], ['/image', '图片'], ['/weibo', '动态'], ['/im', '聊天']
-];
 function renderTop() {
   const topright = document.getElementById('topright');
   if (state.me) {
@@ -118,18 +115,11 @@ function renderTop() {
   } else {
     topright.innerHTML = `<a class="btn small ghost" href="/login" data-link>登录</a><a class="btn small primary" href="/register" data-link>注册</a>`;
   }
-  const priv = document.getElementById('nav-private');
-  if (priv) priv.style.display = state.me ? '' : 'none';
   const adm = document.getElementById('nav-admin');
   if (adm) adm.style.display = state.me && state.me.role === 2 ? '' : 'none';
   document.querySelectorAll('#mainnav a').forEach(a => {
     const href = a.getAttribute('href');
-    const active = href.includes('?')
-      ? location.pathname + location.search === href
-      : href === '/files'
-        ? location.pathname.startsWith('/files') && !location.search.includes('scope=private')
-        : location.pathname === href;
-    a.classList.toggle('active', active);
+    a.classList.toggle('active', location.pathname === href);
   });
 }
 
@@ -139,6 +129,8 @@ function goto(path, replace = false) {
 }
 window.addEventListener('popstate', route);
 document.addEventListener('click', (e) => {
+  const ext = e.target.closest('a[href^="/files"]');
+  if (ext) { e.preventDefault(); location.href = ext.getAttribute('href'); return; }
   const a = e.target.closest('a[data-link]');
   if (a) { e.preventDefault(); goto(a.getAttribute('href')); }
 });
@@ -167,7 +159,7 @@ function renderLogin() {
     const f = new FormData(e.target);
     try {
       await api('/auth/login', { method: 'POST', body: { username: f.get('username'), password: f.get('password') } });
-      await loadMe(); renderTop(); goto('/files'); toast('登录成功');
+      await loadMe(); renderTop(); goto('/'); toast('登录成功');
     } catch (err) { toast(err.message); }
   };
 }
@@ -195,7 +187,7 @@ function renderRegister() {
         ev.preventDefault();
         try {
           await api('/auth/register/verify', { method: 'POST', body: { register_id: d.register_id, code: new FormData(ev.target).get('code') } });
-          closeModal(); await loadMe(); renderTop(); goto('/files'); toast('注册成功');
+          closeModal(); await loadMe(); renderTop(); goto('/'); toast('注册成功');
         } catch (err) { toast(err.message); }
       };
     } catch (err) { toast(err.message); }
@@ -215,7 +207,7 @@ async function renderHome() {
       <h1>把每个人的一小块硬盘，<br>拼成所有人的记忆。</h1>
       <p>ourmemory 是一个共享云盘：整个平台是一个按需解压的归档，资源由所有贡献者共同承载。你也可以拥有一个私人的、加密的压缩包；视频、图片、文字与聊天，都长在同一片存储上。</p>
       <div class="actions">
-        <a class="btn primary" href="/files" data-link>进入共享盘</a>
+        <a class="btn primary" href="/files">进入文件</a>
         <a class="btn" href="/video" data-link>看视频</a>
         ${state.me ? '' : '<a class="btn ghost" href="/register" data-link>用邮箱注册</a>'}
       </div>
@@ -228,12 +220,12 @@ async function renderHome() {
     </section>
     <div class="section-head"><h2>从这里开始</h2><span class="faint small">所有子站共享同一份存储</span></div>
     <div class="grid">
-      <a class="card pad" href="/files" data-link><h3>📦 共享盘</h3><p class="small">上传任意文件；图片、视频、音频、静态 HTML 可在线打开。修改和删除仅限自己上传的内容。</p></a>
+      <a class="card pad" href="/files"><h3>📦 文件浏览器</h3><p class="small">OpenList 原生文件管理器，直接读写共享盘与私人盘。图片、视频、音频、静态 HTML 可在线打开。修改和删除仅限自己上传的内容。</p></a>
       <a class="card pad" href="/video" data-link><h3>🎬 视频站</h3><p class="small">视频与音频汇总。播放、弹幕、点赞、投币、收藏、评论、转发。</p></a>
       <a class="card pad" href="/image" data-link><h3>🖼️ 图片站</h3><p class="small">标签、收藏、评论与排行。没有弹幕，只有作品。</p></a>
       <a class="card pad" href="/weibo" data-link><h3>💬 动态</h3><p class="small">纯文字正文存在主服务器，媒体文件存在共享盘。</p></a>
       <a class="card pad" href="/im" data-link><h3>🗣️ 聊天</h3><p class="small">公共大厅的聊天记录是共享盘里的一个文件；私人群存在创建者的私人加密盘。</p></a>
-      <a class="card pad" href="/files?scope=private" data-link><h3>🔐 私人空间</h3><p class="small">开通你的加密压缩包。普通 1GB，捐赠档 11/61/121GB。</p></a>
+      <a class="card pad" href="/files"><h3>🔐 私人空间</h3><p class="small">开通你的加密压缩包，在文件浏览器的 /private 里使用。普通 1GB，捐赠档 11/61/121GB。</p></a>
     </div>
     <div class="section-head"><h2>关于这个盘</h2></div>
     <div class="card pad">
@@ -247,109 +239,6 @@ async function renderHome() {
     </div>`;
 }
 
-/* ---------------- Files ---------------- */
-function currentScope() { return new URLSearchParams(location.search).get('scope') === 'private' ? 'private' : 'shared'; }
-function currentParent() { return new URLSearchParams(location.search).get('parent') || ''; }
-
-async function renderFiles() {
-  const scope = currentScope();
-  if (scope === 'private' && needLogin()) return;
-  const parent = currentParent();
-  let data;
-  try { data = await api('/files?scope=' + scope + '&parent=' + encodeURIComponent(parent)); }
-  catch (e) { app.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
-  const items = data.items || [];
-  state.filesById = Object.fromEntries(items.map(f => [String(f.id), f]));
-  const pk = (f) => previewKind(f);
-  const crumbs = [];
-  if (parent) {
-    const parts = parent.split('/').filter(Boolean);
-    let acc = '';
-    parts.forEach((p, idx) => { acc += '/' + p; crumbs.push(`<button data-crumb="${attr(acc)}">${esc(p)}</button>${idx < parts.length - 1 ? '<span>/</span>' : ''}`); });
-  }
-  app.innerHTML = `
-    <div class="section-head"><div><h1>${scope === 'shared' ? '共享盘' : '我的私人空间'}</h1><p class="small">${scope === 'shared' ? '所有人可见、可上传。整个共享盘是一个按需解压的归档。' : '加密压缩包，只有你能看见；首次使用需手动开通。'}</p></div>
-      <div class="toolbar" style="margin:0">
-        <div class="seg">
-          <button class="${scope === 'shared' ? 'active' : ''}" data-scope="shared">共享</button>
-          <button class="${scope === 'private' ? 'active' : ''}" data-scope="private">私人</button>
-        </div>
-        ${state.me ? `<button class="btn primary" id="upload-btn">上传文件</button><button class="btn" id="mkdir-btn">新建文件夹</button>` : `<a class="btn primary" href="/login" data-link>登录后上传</a>`}
-      </div>
-    </div>
-    <div class="card pad">
-      <div class="crumb"><button data-crumb="">根目录</button>${crumbs.join('')}</div>
-      ${items.length ? `<div id="file-list">${items.map(f => `
-        <div class="file-row">
-          <div class="icon">${icon(f)}</div>
-          <div style="min-width:0">
-            <div class="name">${f.is_dir ? `<a href="?scope=${scope}&parent=${encodeURIComponent(f.id)}" data-link>${esc(f.name)}</a>` : pk(f) ? `<a href="${fhref(f)}" data-preview="${attr(f.id)}">${esc(f.name)}</a>` : `<a href="${fhref(f)}" target="_blank" rel="noreferrer">${esc(f.name)}</a>`}</div>
-            <div class="meta">${f.is_dir ? '文件夹' : fmtBytes(f.size)} · ${f.kind} · ${ago(f.created_at)}${f.uploader ? ` · 上传者 <a href="/u/${encodeURIComponent(f.uploader)}" data-link>${esc(f.uploader)}</a>` : ''}</div>
-          </div>
-          <div class="ops">
-            ${!f.is_dir && pk(f) ? `<button class="btn small ghost" data-preview="${attr(f.id)}">预览</button>` : ''}
-            ${!f.is_dir ? `<a class="btn small ghost" href="/dl/${attr(f.id)}/${encodeURIComponent(f.name || 'file')}">下载</a>` : ''}
-            ${!f.is_dir && f.scope === 'private' ? `<button class="btn small ghost" data-share="${attr(f.id)}">分享</button>` : ''}
-            ${state.me && (state.me.role === 2 || f.owner_id === state.me.id) ? `<button class="btn small ghost" data-rename="${attr(f.id)}" data-name="${attr(f.name)}">改名</button><button class="btn small danger" data-del="${attr(f.id)}">删除</button>` : ''}
-          </div>
-        </div>`).join('')}</div>` : `<div class="empty">这里还没有文件。${state.me ? '上传第一个吧。' : ''}</div>`}
-    </div>
-    <p class="form-note">直链规则：共享文件 <code>/f/&lt;id&gt;/&lt;文件名&gt;</code> 可被 CDN 缓存；私人文件请用 <code>/s/&lt;token&gt;</code> 短期签名直链。</p>`;
-  document.querySelectorAll('[data-scope]').forEach(b => b.onclick = () => goto('/files?scope=' + b.dataset.scope));
-  document.querySelectorAll('[data-crumb]').forEach(b => b.onclick = () => goto('/files?scope=' + scope + '&parent=' + encodeURIComponent(b.dataset.crumb)));
-  const up = document.getElementById('upload-btn');
-  if (up) up.onclick = () => {
-    const input = document.createElement('input'); input.type = 'file'; input.multiple = true;
-    input.onchange = async () => {
-      for (const file of input.files) {
-        toast('上传 ' + file.name + ' …');
-        try { await uploadFile(file, scope, parent); } catch (e) { toast(e.message); }
-      }
-      toast('上传完成'); route();
-    };
-    input.click();
-  };
-  const mk = document.getElementById('mkdir-btn');
-  if (mk) mk.onclick = () => {
-    openModal(`<h2>新建文件夹</h2><form id="mkdir-form"><label class="field"><span>名称</span><input class="input" name="name" required></label><div class="actions"><button type="button" class="btn ghost" id="cancel">取消</button><button class="btn primary" type="submit">创建</button></div></form>`);
-    document.getElementById('cancel').onclick = closeModal;
-    document.getElementById('mkdir-form').onsubmit = async (e) => {
-      e.preventDefault();
-      try { await api('/folders', { method: 'POST', body: { scope, parent, name: new FormData(e.target).get('name') } }); closeModal(); toast('已创建'); route(); }
-      catch (err) { toast(err.message); }
-    };
-  };
-  document.querySelectorAll('[data-preview]').forEach(a => a.onclick = (e) => {
-    e.preventDefault();
-    const f = state.filesById && state.filesById[a.dataset.preview];
-    if (f) previewFile(f);
-  });
-  document.querySelectorAll('[data-share]').forEach(b => b.onclick = async () => {
-    try {
-      const d = await api('/files/' + b.dataset.share + '/sign', { method: 'POST' });
-      const url = location.origin + d.url;
-      openModal(`<h2>私人文件分享链接</h2><p class="small muted">这个链接在 ${Math.round(d.expires_in / 3600)} 小时内有效，拿到链接的人可以读取该文件。</p>
-        <div class="code" style="padding:12px;word-break:break-all">${esc(url)}</div>
-        <div class="actions"><button class="btn ghost" id="copy-share">复制链接</button><button class="btn primary" id="close-share">关闭</button></div>`);
-      document.getElementById('copy-share').onclick = async () => { try { await navigator.clipboard.writeText(url); toast('已复制'); } catch (_) { toast('请手动复制'); } };
-      document.getElementById('close-share').onclick = closeModal;
-    } catch (e) { toast(e.message); }
-  });
-  document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
-    if (!confirm('确认删除这个文件？共享盘会释放对应的归档引用。')) return;
-    try { await api('/files/delete', { method: 'POST', body: { id: b.dataset.del } }); toast('已删除'); route(); }
-    catch (e) { toast(e.message); }
-  });
-  document.querySelectorAll('[data-rename]').forEach(b => b.onclick = () => {
-    openModal(`<h2>重命名</h2><form id="rename-form"><label class="field"><span>新名称</span><input class="input" name="name" value="${attr(b.dataset.name)}" required></label><div class="actions"><button type="button" class="btn ghost" id="cancel">取消</button><button class="btn primary" type="submit">保存</button></div></form>`);
-    document.getElementById('cancel').onclick = closeModal;
-    document.getElementById('rename-form').onsubmit = async (e) => {
-      e.preventDefault();
-      try { await api('/files/rename', { method: 'POST', body: { id: b.dataset.rename, name: new FormData(e.target).get('name') } }); closeModal(); toast('已保存'); route(); }
-      catch (err) { toast(err.message); }
-    };
-  });
-}
 
 /* ---------------- Video ---------------- */
 async function renderVideoList() {
@@ -815,8 +704,8 @@ async function renderAdmin() {
   if (state.me.role !== 2) { app.innerHTML = `<div class="empty">需要管理员权限。</div>`; return; }
   let stats = {}, codes = {}, users = {}, nodes = {}, packs = {};
   try { [stats, codes, users, nodes, packs] = await Promise.all([api('/admin/stats'), api('/admin/codes'), api('/admin/users'), api('/admin/nodes'), api('/admin/packs')]); } catch (e) { app.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
-  app.innerHTML = `<div class="section-head"><div><h1>管理后台</h1><p class="small">容量、用户、兑换码与贡献节点。</p></div><a class="btn" href="/@manage" target="_blank" rel="noreferrer">OpenList 完整管理台</a></div>
-    <div class="admin-banner"><div><h3>OpenList 原生管理功能</h3><div class="small muted">用户管理、存储驱动、站点设置、任务与索引，都在独立的 OpenList 管理台里。首次进入需要再登录一次 OpenList 管理员账号。</div><div class="chips" style="margin-top:8px"><a class="chip" href="/@manage/users" target="_blank" rel="noreferrer">用户</a><a class="chip" href="/@manage/storages" target="_blank" rel="noreferrer">存储</a><a class="chip" href="/@manage/settings" target="_blank" rel="noreferrer">设置</a><a class="chip" href="/@manage/tasks" target="_blank" rel="noreferrer">任务</a></div></div><a class="btn primary" href="/@manage" target="_blank" rel="noreferrer">打开 /@manage</a></div>
+  app.innerHTML = `<div class="section-head"><div><h1>管理后台</h1><p class="small">容量、用户、兑换码与贡献节点。</p></div><a class="btn" href="/files/@manage" target="_blank" rel="noreferrer">OpenList 完整管理台</a></div>
+    <div class="admin-banner"><div><h3>OpenList 原生管理功能</h3><div class="small muted">用户管理、存储驱动、站点设置、任务与索引，都在独立的 OpenList 管理台里。首次进入需要再登录一次 OpenList 管理员账号。</div><div class="chips" style="margin-top:8px"><a class="chip" href="/files/@manage/users" target="_blank" rel="noreferrer">用户</a><a class="chip" href="/files/@manage/storages" target="_blank" rel="noreferrer">存储</a><a class="chip" href="/files/@manage/settings" target="_blank" rel="noreferrer">设置</a><a class="chip" href="/files/@manage/tasks" target="_blank" rel="noreferrer">任务</a></div></div><a class="btn primary" href="/files/@manage" target="_blank" rel="noreferrer">打开管理台</a></div>
     <div class="stat-cards">${Object.entries(stats).map(([k, v]) => `<div class="stat-card"><b>${typeof v === 'number' ? fmtNum(v) : esc(v)}</b><span>${esc(k)}</span></div>`).join('')}</div>
     <div class="section-head"><h2>兑换码</h2></div>
     <div class="card pad"><form id="code-form" class="toolbar"><select class="input" name="kind" style="max-width:150px"><option value="tier">等级</option><option value="reservation">预留包</option><option value="quota">额度</option></select><input class="input" name="tier" type="number" min="0" max="3" value="1" style="max-width:100px" placeholder="tier"><input class="input" name="bytes" type="number" placeholder="bytes" style="max-width:180px"><input class="input" name="days" type="number" placeholder="天数" style="max-width:120px"><input class="input" name="count" type="number" min="1" max="50" value="1" style="max-width:100px"><button class="btn primary">生成</button></form>
@@ -857,7 +746,6 @@ async function route() {
   renderTop();
   if (path === '/login') return renderLogin();
   if (path === '/register') return renderRegister();
-  if (path === '/files') return renderFiles();
   if (path === '/video') return renderVideoList();
   const vm = path.match(/^\/video\/(\d+)$/); if (vm) return renderVideoDetail(vm[1]);
   if (path === '/image') return renderImageList();

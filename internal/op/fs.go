@@ -23,6 +23,20 @@ import (
 
 var listG singleflight.Group[[]model.Obj]
 
+// scopedKey keeps per-user drivers (such as ourmemory's private mount) from
+// sharing directory/link singleflight state between users. NoCache only
+// disables the directory cache; it does not scope singleflight or linkCache.
+func scopedKey(ctx context.Context, storage driver.Driver, key string) string {
+	if !storage.Config().NoCache {
+		return key
+	}
+	u, ok := ctx.Value(conf.UserKey).(*model.User)
+	if !ok || u == nil {
+		return key
+	}
+	return key + "/u:" + strconv.FormatUint(uint64(u.ID), 10)
+}
+
 // List files in storage, not contains virtual file
 func List(ctx context.Context, storage driver.Driver, path string, args model.ListArgs) ([]model.Obj, error) {
 	return list(ctx, storage, path, args, nil)
@@ -34,7 +48,7 @@ func list(ctx context.Context, storage driver.Driver, path string, args model.Li
 	}
 	path = utils.FixAndCleanPath(path)
 	log.Debugf("op.List %s", path)
-	key := Key(storage, path)
+	key := scopedKey(ctx, storage, Key(storage, path))
 	if !args.Refresh {
 		if dirCache, exists := Cache.dirCache.Get(key); exists {
 			log.Debugf("use cache when list %s", path)
@@ -252,7 +266,7 @@ func Link(ctx context.Context, storage driver.Driver, path string, args model.Li
 	if mode&driver.LinkCacheUA != 0 {
 		typeKey += "/" + args.Header.Get("User-Agent")
 	}
-	key := Key(storage, path)
+	key := scopedKey(ctx, storage, Key(storage, path))
 	if ol, exists := Cache.linkCache.GetType(key, typeKey); exists {
 		if ol.acquire() {
 			return ol.link, ol.obj, nil
@@ -321,7 +335,7 @@ func MakeDir(ctx context.Context, storage driver.Driver, path string) error {
 		return errors.WithMessagef(errs.StorageNotInit, "storage status: %s", storage.GetStorage().Status)
 	}
 	path = utils.FixAndCleanPath(path)
-	key := Key(storage, path)
+	key := scopedKey(ctx, storage, Key(storage, path))
 	_, err, _ := mkdirG.Do(key, func() (any, error) {
 		// check if dir exists
 		f, err := Get(ctx, storage, path)

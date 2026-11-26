@@ -129,8 +129,10 @@ OM_SHARED_MAX_BYTES=5368709120
 OM_CACHE_BYTES=10737418240
 OM_NODE_SECRET=<NODE_SECRET.txt>
 OM_DEBUG=0
-OPENLIST_SITE_URL=https://om.autozteam.cn
+OPENLIST_SITE_URL=https://om.autozteam.cn/files
 ```
+
+`site_url` 必须带 `/files` 后缀：ourmemory 首页占用根路径 `/`，OpenList 原生文件浏览器挂在 `/files`；`config.json` 中的 `site_url` 也要保持同一值。
 
 - `OM_DEBUG=1` 时注册验证码写日志；生产在 SkyMail 配好前可临时保留，配好后改 `0`。
 - SkyMail 使用已解析的 `cm.autozteam.cn`（Cloudflare 上的 Cloud Mail 实例）：

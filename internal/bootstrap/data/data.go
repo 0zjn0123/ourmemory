@@ -10,4 +10,6 @@ func InitData() {
 		initDevData()
 		initDevDo()
 	}
+	initOMStorage()
+	initOMBranding()
 }

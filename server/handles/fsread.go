@@ -70,10 +70,9 @@ func FsListSplit(c *gin.Context) {
 		return
 	}
 	user := c.Request.Context().Value(conf.UserKey).(*model.User)
-	if user.IsGuest() && user.Disabled {
-		common.ErrorStrResp(c, "Guest user is disabled, login please", 401)
-		return
-	}
+	// ourmemory: anonymous visitors may browse the shared drive read-only.
+	// The OM driver returns an empty /private listing for guests and rejects
+	// every write, so no per-file permission is leaked here.
 	FsList(c, &req, user)
 }
 
@@ -120,7 +119,8 @@ func FsList(c *gin.Context, req *ListReq, user *model.User) {
 		Total:              int64(total),
 		Readme:             getReadme(meta, reqPath),
 		Header:             getHeader(meta, reqPath),
-		Write:              common.CanWrite(user, meta, reqPath),
+		// ourmemory: guests are read-only; hide upload/create controls in the browser.
+		Write:              common.CanWrite(user, meta, reqPath) && !user.IsGuest(),
 		WriteContentBypass: common.CanWriteContentBypassUserPerms(meta, reqPath),
 		Provider:           provider,
 		DirectUploadTools:  directUploadTools,
@@ -274,10 +274,7 @@ func FsGetSplit(c *gin.Context) {
 		return
 	}
 	user := c.Request.Context().Value(conf.UserKey).(*model.User)
-	if user.IsGuest() && user.Disabled {
-		common.ErrorStrResp(c, "Guest user is disabled, login please", 401)
-		return
-	}
+	// ourmemory: anonymous visitors may read shared files (see FsListSplit).
 	FsGet(c, &req, user)
 }
 
