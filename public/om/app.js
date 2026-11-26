@@ -117,9 +117,10 @@ function renderTop() {
   }
   const adm = document.getElementById('nav-admin');
   if (adm) adm.style.display = state.me && state.me.role === 2 ? '' : 'none';
+  const activePath = effectivePath();
   document.querySelectorAll('#mainnav a').forEach(a => {
     const href = a.getAttribute('href');
-    a.classList.toggle('active', location.pathname === href);
+    a.classList.toggle('active', activePath === href);
   });
 }
 
@@ -739,8 +740,19 @@ async function loadMe() {
   const d = await api('/me').catch(() => null);
   state.me = d ? d.user : null; state.profile = d ? d.profile : null; state.titles = d ? d.titles || [] : [];
 }
-async function route() {
+// A subdomain such as video.om.example.com is rewritten to /video on the
+// server, but the browser still sees "/". Remember the entry subdomain so the
+// first render matches what the visitor typed.
+const SUBDOMAIN_PAGES = ['video', 'image', 'weibo', 'im'];
+function effectivePath() {
   const path = location.pathname;
+  if (path !== '/' && path !== '') return path;
+  const host = location.hostname.toLowerCase();
+  const sub = SUBDOMAIN_PAGES.find((s) => host.startsWith(s + '.'));
+  return sub ? '/' + sub : path || '/';
+}
+async function route() {
+  const path = effectivePath();
   state.route = path;
   document.body.classList.toggle('home', path === '/');
   renderTop();
