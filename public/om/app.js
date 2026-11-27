@@ -700,6 +700,65 @@ async function renderUser(name) {
   } catch (_) {}
 }
 
+async function renderDocs() {
+  app.innerHTML = `<div class="section-head"><div><h1>文档</h1><p class="small">存储 API、开放接口与部署说明。</p></div></div>
+    <div class="card pad" id="docs-body"><div class="empty small">加载中…</div></div>`;
+  let md = '';
+  try {
+    const r = await fetch('/api/om/docs');
+    if (r.ok) md = await r.text();
+  } catch (_) {}
+  if (!md) md = '# ourmemory API\n\n文档暂未就绪，请稍后再试。';
+  const el = document.getElementById('docs-body');
+  el.innerHTML = mdToHtml(md);
+}
+
+// Minimal markdown to HTML for the docs page. Supports headings, code fences,
+// inline code, lists, tables (pipe rows), links and bold. Not a full parser —
+// docs/API.md is the source of truth and stays plain markdown.
+function mdToHtml(md) {
+  const escAll = (s) => esc(s);
+  const inline = (s) => esc(s)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+  const lines = md.split(/\r?\n/);
+  let out = '', inCode = false, codeBuf = [], listBuf = [], tableBuf = [];
+  const flushList = () => { if (listBuf.length) { out += '<ul>' + listBuf.map((l) => `<li>${inline(l)}</li>`).join('') + '</ul>'; listBuf = []; } };
+  const flushTable = () => {
+    if (tableBuf.length) {
+      const rows = tableBuf.filter((r) => !/^\s*\|[\s:|-]+\|\s*$/.test(r));
+      if (rows.length) {
+        out += '<table class="tbl"><thead><tr>' + rows[0].split('|').slice(1, -1).map((c) => `<th>${inline(c.trim())}</th>`).join('') + '</tr></thead><tbody>';
+        for (const r of rows.slice(1)) out += '<tr>' + r.split('|').slice(1, -1).map((c) => `<td>${inline(c.trim())}</td>`).join('') + '</tr>';
+        out += '</tbody></table>';
+      }
+      tableBuf = [];
+    }
+  };
+  for (const line of lines) {
+    if (line.trim().startsWith('```')) {
+      if (inCode) { out += `<pre class="code">${escAll(codeBuf.join('\n'))}</pre>`; codeBuf = []; }
+      inCode = !inCode;
+      continue;
+    }
+    if (inCode) { codeBuf.push(line); continue; }
+    if (/^\s*\|.*\|\s*$/.test(line)) { flushList(); tableBuf.push(line); continue; }
+    flushTable();
+    const hm = line.match(/^(#{1,4})\s+(.*)$/);
+    if (hm) { flushList(); out += `<h${hm[1].length}>${inline(hm[2])}</h${hm[1].length}>`; continue; }
+    const lm = line.match(/^\s*[-*]\s+(.*)$/);
+    if (lm) { listBuf.push(lm[1]); continue; }
+    flushList();
+    if (line.trim() === '') continue;
+    if (/^\s*\d+\.\s/.test(line)) { out += `<p class="small">${inline(line.trim())}</p>`; continue; }
+    out += `<p>${inline(line)}</p>`;
+  }
+  if (inCode) out += `<pre class="code">${escAll(codeBuf.join('\n'))}</pre>`;
+  flushList(); flushTable();
+  return out;
+}
+
 async function renderAdmin() {
   if (needLogin()) return;
   if (state.me.role !== 2) { app.innerHTML = `<div class="empty">需要管理员权限。</div>`; return; }
@@ -766,6 +825,7 @@ async function route() {
   if (path === '/im') return renderIM();
   if (path === '/settings') return renderSettings();
   if (path === '/admin') return renderAdmin();
+  if (path === '/docs') return renderDocs();
   const um = path.match(/^\/u\/([^/]+)$/); if (um) return renderUser(decodeURIComponent(um[1]));
   return renderHome();
 }
