@@ -206,7 +206,7 @@ async function renderHome() {
     <section class="hero">
       <div class="eyebrow">community-owned cloud</div>
       <h1>把每个人的一小块硬盘，<br>拼成所有人的记忆。</h1>
-      <p>ourmemory 是一个共享云盘：整个平台是一个按需解压的归档，资源由所有贡献者共同承载。你也可以拥有一个私人的、加密的压缩包；视频、图片、文字与聊天，都长在同一片存储上。</p>
+      <p>ourmemory 是一个共享云盘：所有资源放在一个按需解压的归档里，由贡献者共同承载。你也可以开通一个加密的私人压缩包。视频、图片、文字和聊天都用同一套存储。</p>
       <div class="actions">
         <a class="btn primary" href="/files">进入文件</a>
         <a class="btn" href="/video" data-link>看视频</a>
@@ -223,7 +223,7 @@ async function renderHome() {
     <div class="grid">
       <a class="card pad" href="/files"><h3>📦 文件浏览器</h3><p class="small">OpenList 原生文件管理器，直接读写共享盘与私人盘。图片、视频、音频、静态 HTML 可在线打开。修改和删除仅限自己上传的内容。</p></a>
       <a class="card pad" href="/video" data-link><h3>🎬 视频站</h3><p class="small">视频与音频汇总。播放、弹幕、点赞、投币、收藏、评论、转发。</p></a>
-      <a class="card pad" href="/image" data-link><h3>🖼️ 图片站</h3><p class="small">标签、收藏、评论与排行。没有弹幕，只有作品。</p></a>
+      <a class="card pad" href="/image" data-link><h3>🖼️ 图片站</h3><p class="small">标签、收藏、评论与排行，不设弹幕。</p></a>
       <a class="card pad" href="/weibo" data-link><h3>💬 动态</h3><p class="small">纯文字正文存在主服务器，媒体文件存在共享盘。</p></a>
       <a class="card pad" href="/im" data-link><h3>🗣️ 聊天</h3><p class="small">公共大厅的聊天记录是共享盘里的一个文件；私人群存在创建者的私人加密盘。</p></a>
       <a class="card pad" href="/files"><h3>🔐 私人空间</h3><p class="small">开通你的加密压缩包，在文件浏览器的 /private 里使用。普通 1GB，捐赠档 11/61/121GB。</p></a>
@@ -400,7 +400,7 @@ async function renderImageList() {
   try { d = await api('/images?' + q.toString()); } catch (e) { app.innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
   const items = d.items || [];
   app.innerHTML = `
-    <div class="section-head"><div><h1>图片站</h1><p class="small">作品、标签与收藏。没有弹幕，只有画面。</p></div>
+    <div class="section-head"><div><h1>图片站</h1><p class="small">作品、标签与收藏，不设弹幕。</p></div>
       ${state.me ? `<button class="btn primary" id="publish-image">发布图片</button>` : `<a class="btn primary" href="/login" data-link>登录后发布</a>`}</div>
     <form id="search" class="toolbar"><input class="input" name="q" placeholder="搜索标题或标签" value="${attr(q.get('q') || '')}" style="max-width:360px"><button class="btn">搜索</button></form>
     ${items.length ? `<div class="grid masonry">${items.map(x => `
